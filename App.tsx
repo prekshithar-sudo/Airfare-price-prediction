@@ -2,6 +2,7 @@
  * @format
  */
 
+import { useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,63 +11,139 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-
-const courseHighlights = [
-  'Curated learning paths',
-  'Progress tracking',
-  'Mobile and web ready',
-];
-
-const stats = [
-  { label: 'Lessons', value: '120+' },
-  { label: 'Tracks', value: '8' },
-  { label: 'Mentors', value: '24' },
-];
+import { screens, type ScreenDefinition } from './src/screens';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const [selectedScreen, setSelectedScreen] = useState<ScreenDefinition>(
+    screens[0],
+  );
+
+  const selectedIndex = screens.findIndex(
+    screen => screen.id === selectedScreen.id,
+  );
+  const currentIndex = selectedIndex >= 0 ? selectedIndex : 0;
+  const canGoBack = currentIndex > 0;
+  const canGoForward = currentIndex < screens.length - 1;
+  const ActiveScreen = selectedScreen.component;
+
+  function goToScreen(index: number) {
+    const nextScreen = screens[index];
+
+    if (nextScreen != null) {
+      setSelectedScreen(nextScreen);
+    }
+  }
 
   return (
-    <View style={[styles.safeArea, isDarkMode && styles.safeAreaDark]}>
+    <View style={[styles.app, isDarkMode && styles.appDark]}>
       <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.hero}>
-          <Text style={styles.eyebrow}>E-learning workspace</Text>
-          <Text style={styles.title}>Build skills without losing momentum.</Text>
-          <Text style={styles.subtitle}>
-            A shared React Native codebase now runs on Android, iOS, and the
-            browser through React Native Web.
-          </Text>
-
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.primaryAction,
-                pressed && styles.primaryActionPressed,
-              ]}>
-              <Text style={styles.primaryActionText}>Start learning</Text>
-            </Pressable>
-            <Text style={styles.caption}>One app surface, three targets.</Text>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.eyebrow}>Figma screen scaffold</Text>
+            <Text style={styles.title}>E-learning pages</Text>
+          </View>
+          <View style={styles.countBadge}>
+            <Text style={styles.countValue}>{screens.length}</Text>
+            <Text style={styles.countLabel}>screens</Text>
           </View>
         </View>
 
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>What is ready</Text>
-          {courseHighlights.map(item => (
-            <View key={item} style={styles.highlightRow}>
-              <View style={styles.highlightDot} />
-              <Text style={styles.highlightText}>{item}</Text>
-            </View>
-          ))}
-        </View>
+        <View style={styles.layout}>
+          <View style={styles.directory}>
+            <Text style={styles.sectionTitle}>Screen directory</Text>
+            <Text style={styles.sectionCopy}>
+              Every Figma screen has a unique component name and route-friendly
+              identifier.
+            </Text>
 
-        <View style={styles.statsGrid}>
-          {stats.map(stat => (
-            <View key={stat.label} style={styles.statCard}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+            <View style={styles.screenGrid}>
+              {screens.map(screen => {
+                const isSelected = screen.id === selectedScreen.id;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    key={screen.id}
+                    onPress={() => setSelectedScreen(screen)}
+                    style={({ pressed }) => [
+                      styles.screenCard,
+                      isSelected && styles.screenCardActive,
+                      pressed && styles.screenCardPressed,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.screenNumber,
+                        isSelected && styles.screenNumberActive,
+                      ]}>
+                      {String(screen.order).padStart(2, '0')}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.screenTitle,
+                        isSelected && styles.screenTitleActive,
+                      ]}>
+                      {screen.title}
+                    </Text>
+                    <Text style={styles.screenMeta}>{screen.componentName}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
-          ))}
+          </View>
+
+          <View style={styles.preview}>
+            <View style={styles.previewHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Selected page</Text>
+                <Text style={styles.pageCounter}>
+                  Page {currentIndex + 1} of {screens.length}
+                </Text>
+              </View>
+              <View style={styles.walkthroughControls}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!canGoBack}
+                  onPress={() => goToScreen(currentIndex - 1)}
+                  style={({ pressed }) => [
+                    styles.walkthroughButton,
+                    !canGoBack && styles.walkthroughButtonDisabled,
+                    pressed && canGoBack && styles.walkthroughButtonPressed,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.walkthroughButtonText,
+                      !canGoBack && styles.walkthroughButtonTextDisabled,
+                    ]}>
+                    Previous
+                  </Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!canGoForward}
+                  onPress={() => goToScreen(currentIndex + 1)}
+                  style={({ pressed }) => [
+                    styles.walkthroughButton,
+                    !canGoForward && styles.walkthroughButtonDisabled,
+                    pressed && canGoForward && styles.walkthroughButtonPressed,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.walkthroughButtonText,
+                      !canGoForward && styles.walkthroughButtonTextDisabled,
+                    ]}>
+                    Next
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+            <Text style={styles.sectionCopy}>
+              Use the controls to walk through the Figma sequence, or tap any
+              page in the directory.
+            </Text>
+            <ActiveScreen />
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -74,135 +151,176 @@ function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  app: {
     flex: 1,
-    backgroundColor: '#f5efe3',
+    backgroundColor: '#f4eddf',
   },
-  safeAreaDark: {
-    backgroundColor: '#16130f',
+  appDark: {
+    backgroundColor: '#15130f',
   },
   page: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 32,
+    paddingHorizontal: 18,
+    paddingVertical: 26,
   },
-  hero: {
-    backgroundColor: '#223127',
-    borderRadius: 34,
-    maxWidth: 920,
-    overflow: 'hidden',
-    padding: 32,
+  header: {
+    alignItems: 'center',
+    backgroundColor: '#213328',
+    borderRadius: 32,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    maxWidth: 1180,
+    padding: 24,
     width: '100%',
   },
   eyebrow: {
-    color: '#f1c766',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 1.6,
-    marginBottom: 18,
+    color: '#f0c55f',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.7,
+    marginBottom: 8,
     textTransform: 'uppercase',
   },
   title: {
     color: '#fff8ea',
-    fontSize: 44,
+    fontSize: 38,
     fontWeight: '900',
-    letterSpacing: -1.4,
-    lineHeight: 50,
-    maxWidth: 620,
+    letterSpacing: -1.1,
   },
-  subtitle: {
-    color: '#d8cdb9',
-    fontSize: 18,
-    lineHeight: 28,
-    marginTop: 18,
-    maxWidth: 620,
-  },
-  actions: {
+  countBadge: {
     alignItems: 'center',
+    backgroundColor: '#f0c55f',
+    borderRadius: 22,
+    minWidth: 92,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  countValue: {
+    color: '#1b1710',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  countLabel: {
+    color: '#514120',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  layout: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 28,
-  },
-  primaryAction: {
-    backgroundColor: '#f1c766',
-    borderRadius: 999,
-    marginRight: 16,
-    paddingHorizontal: 22,
-    paddingVertical: 13,
-  },
-  primaryActionPressed: {
-    opacity: 0.82,
-  },
-  primaryActionText: {
-    color: '#1d1a14',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  caption: {
-    color: '#b9ab92',
-    fontSize: 14,
-    marginVertical: 12,
-  },
-  panel: {
-    backgroundColor: '#fffaf0',
-    borderColor: '#e1d4bf',
-    borderRadius: 28,
-    borderWidth: 1,
-    marginTop: 20,
-    maxWidth: 920,
-    padding: 24,
+    maxWidth: 1180,
     width: '100%',
   },
-  panelTitle: {
-    color: '#223127',
+  directory: {
+    flexBasis: 560,
+    flexGrow: 1,
+    marginTop: 18,
+    paddingRight: 8,
+  },
+  preview: {
+    flexBasis: 420,
+    flexGrow: 1,
+    marginTop: 18,
+    paddingLeft: 8,
+  },
+  sectionTitle: {
+    color: '#213328',
     fontSize: 22,
     fontWeight: '900',
-    marginBottom: 12,
+    marginBottom: 6,
   },
-  highlightRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    paddingVertical: 9,
+  sectionCopy: {
+    color: '#6d6252',
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 14,
   },
-  highlightDot: {
-    backgroundColor: '#d75837',
-    borderRadius: 6,
-    height: 12,
-    marginRight: 12,
-    width: 12,
+  pageCounter: {
+    color: '#d45c38',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 6,
   },
-  highlightText: {
-    color: '#3d372d',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  statsGrid: {
+  previewHeader: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 20,
-    maxWidth: 920,
-    width: '100%',
+    justifyContent: 'space-between',
   },
-  statCard: {
-    backgroundColor: '#ded0b8',
-    borderRadius: 24,
-    flexGrow: 1,
-    margin: 6,
-    minWidth: 150,
-    padding: 22,
+  walkthroughControls: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
-  statValue: {
-    color: '#223127',
-    fontSize: 30,
+  walkthroughButton: {
+    backgroundColor: '#213328',
+    borderRadius: 999,
+    marginLeft: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  walkthroughButtonDisabled: {
+    backgroundColor: '#d9cbb5',
+  },
+  walkthroughButtonPressed: {
+    opacity: 0.78,
+  },
+  walkthroughButtonText: {
+    color: '#fff8ea',
+    fontSize: 12,
     fontWeight: '900',
   },
-  statLabel: {
-    color: '#665a48',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginTop: 4,
-    textTransform: 'uppercase',
+  walkthroughButtonTextDisabled: {
+    color: '#91846e',
+  },
+  screenGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  screenCard: {
+    backgroundColor: '#fffaf0',
+    borderColor: '#e1d3bd',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexBasis: 168,
+    flexGrow: 1,
+    margin: 5,
+    minHeight: 116,
+    padding: 14,
+  },
+  screenCardActive: {
+    backgroundColor: '#213328',
+    borderColor: '#213328',
+  },
+  screenCardPressed: {
+    opacity: 0.78,
+  },
+  screenNumber: {
+    color: '#d45c38',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 10,
+  },
+  screenNumberActive: {
+    color: '#f0c55f',
+  },
+  screenTitle: {
+    color: '#242017',
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
+  screenTitleActive: {
+    color: '#fff8ea',
+  },
+  screenMeta: {
+    color: '#958872',
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+    marginTop: 8,
   },
 });
 
